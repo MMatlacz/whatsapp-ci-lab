@@ -41,3 +41,18 @@ swift test
 ## Licensing
 
 The original synthetic code in this repository is MIT-licensed.
+
+## Nimbus correlation dispatch (synthetic only)
+
+The public CI may be invoked with GitHub `workflow_dispatch` and inputs
+`request_id=lab-<32 random lowercase hexadecimal chars>` and
+`suite=synthetic-xcode27-v1`. GitHub Actions displays **only** this opaque
+identifier in the run name; the private originating repository, commit and PR
+must never appear in the public event payload, logs or artifacts. The local
+Nimbus control-plane dispatcher retains the private mapping; the public lab
+runs **only its own synthetic code**. The `request_id` and suite are validated
+on both Linux and macOS jobs, and different requests do not cancel each other.
+
+A successful public run is *advisory evidence of a synthetic Apple toolchain
+probe*, **not** a private app build, Apple release acceptance or a substitute
+for required private CI. The lab does not accept private source or auth tokens.

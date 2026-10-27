@@ -13,6 +13,8 @@ allowed=(
   Tests/LabCoreTests/DeterministicSampleTests.swift
   docs/SECURITY_BOUNDARY.md
   scripts/verify-public-boundary.sh
+  scripts/validate-dispatch-inputs.sh
+  scripts/test-dispatch-inputs.sh
 )
 # GitHub macOS images still have /bin/bash 3.2, which lacks mapfile.
 # Process substitution and diff work in both Bash 3.2 and current Linux Bash.
