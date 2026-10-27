@@ -14,9 +14,10 @@ allowed=(
   docs/SECURITY_BOUNDARY.md
   scripts/verify-public-boundary.sh
 )
-mapfile -t actual < <(git ls-files | LC_ALL=C sort)
-mapfile -t expected < <(printf '%s\n' "${allowed[@]}" | LC_ALL=C sort)
-if [[ "${actual[*]}" != "${expected[*]}" ]]; then
+# GitHub macOS images still have /bin/bash 3.2, which lacks mapfile.
+# Process substitution and diff work in both Bash 3.2 and current Linux Bash.
+if ! diff -u <(printf '%s\n' "${allowed[@]}" | LC_ALL=C sort) \
+              <(git ls-files | LC_ALL=C sort) >/dev/null; then
     echo 'PUBLIC-BOUNDARY-FAIL: tracked files differ from the synthetic allowlist.' >&2
     exit 1
 fi
