@@ -41,3 +41,17 @@ swift test
 ## Licensing
 
 The original synthetic code in this repository is MIT-licensed.
+
+## Correlated synthetic dispatches
+
+A trusted external controller can send a `workflow_dispatch` to `main` with
+`request_id` (exactly 32 lowercase hexadecimal characters, generated randomly)
+and `scenario=pass`. The public Actions run name displays only that opaque ID.
+The optional `fail-canary` scenario intentionally fails a **synthetic** job
+without downloading or testing private source. Ordinary pushes still run both
+synthetic Linux and Xcode 27 jobs.
+
+The public workflow neither receives nor stores private repository identifiers,
+commit hashes, PR numbers, credentials, product code or build artifacts.
+Dispatch acceptance alone does not establish a passing run. A separate trusted
+controller must match the run ID and inspect the actual job conclusions.

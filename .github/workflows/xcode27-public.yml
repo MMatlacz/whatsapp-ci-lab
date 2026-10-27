@@ -4,16 +4,68 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      request_id:
+        description: 'Opaque random hexadecimal ID; never a private commit SHA'
+        required: true
+        type: string
+      scenario:
+        description: 'Synthetic test mode'
+        required: true
+        type: choice
+        default: pass
+        options: [pass, fail-canary]
+
+# Public workflow metadata must never include private SHA, PR, source path or actor.
+run-name: Synthetic lab ${{ inputs.request_id || 'push' }}
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-lab-${{ github.ref }}
+  group: ci-lab-${{ inputs.request_id || github.run_id }}
   cancel-in-progress: true
 
 jobs:
+  validate-dispatch:
+    name: validate-opaque-request
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 3
+    steps:
+      - name: Reject malformed or unsupported public workflow input
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          REQUEST_ID: ${{ inputs.request_id }}
+          SCENARIO: ${{ inputs.scenario }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$REQUEST_ID" =~ ^[0-9a-f]{32}$ ]]; then
+            echo 'Invalid opaque request ID (exactly 32 lowercase hex digits required).'
+            exit 2
+          fi
+          case "$SCENARIO" in
+            pass|fail-canary) ;;
+            *) echo 'Unsupported synthetic test scenario.'; exit 2 ;;
+          esac
+          echo 'Synthetic request contract: PASS'
+
+  failure-canary:
+    name: synthetic-failure-canary
+    if: github.event_name == 'workflow_dispatch' && inputs.scenario == 'fail-canary'
+    needs: validate-dispatch
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 3
+    steps:
+      - name: Intentionally fail a synthetic diagnostic
+        shell: bash
+        run: |
+          echo 'Public synthetic failure canary (no private code).'
+          exit 42
+
   linux-synthetic:
+    needs: validate-dispatch
+    if: github.event_name != 'workflow_dispatch' || inputs.scenario == 'pass'
     name: linux-arm64-synthetic
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
@@ -27,6 +79,8 @@ jobs:
 
   xcode27-synthetic:
     name: xcode27-synthetic
+    needs: validate-dispatch
+    if: github.event_name != 'workflow_dispatch' || inputs.scenario == 'pass'
     runs-on: xcode-27
     timeout-minutes: 20
     steps:
