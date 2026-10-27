@@ -50,7 +50,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          xcodebuild -scheme LabCore \
+          # A standalone SwiftPM package is exposed by Xcode under its
+          # PACKAGE name, not necessarily the library product name.
+          xcodebuild -list
+          xcodebuild -scheme SyntheticXcodeCILab \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath "$RUNNER_TEMP/ci-lab-derived-data" \
