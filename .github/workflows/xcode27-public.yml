@@ -3,6 +3,8 @@ name: Public Synthetic Swift and Xcode 27 CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       request_id:
@@ -17,7 +19,7 @@ on:
         options: [pass, fail-canary]
 
 # Public workflow metadata must never include private SHA, PR, source path or actor.
-run-name: Synthetic lab ${{ inputs.request_id || 'push' }}
+run-name: Synthetic lab ${{ inputs.request_id || github.event_name }}
 
 permissions:
   contents: read
