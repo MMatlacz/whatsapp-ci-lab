@@ -53,7 +53,7 @@ xcodebuild -quiet test \
 status=$?
 set -e
 if [[ -d "${result}" ]]; then
-  xcrun xcresulttool get test-results summary --path "${result}" --format json > "${RUNNER_TEMP}/native-acceptance-summary.json"
+  xcrun xcresulttool get test-results summary --path "${result}" > "${RUNNER_TEMP}/native-acceptance-summary.json"
   python3 - "${RUNNER_TEMP}/native-acceptance-summary.json" "${status}" <<'PY'
 import json,sys
 summary=json.load(open(sys.argv[1]))
