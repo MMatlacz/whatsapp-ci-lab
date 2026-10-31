@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# This lab intentionally contains only a fixed allowlist of original,
-# synthetic files. Changing the allowed surface requires an explicit review.
+# This lab contains only explicitly reviewed public harness and synthetic
+# files. Private application source must not be committed to this repository.
 allowed=(
   .github/workflows/xcode27-public.yml
+  .github/workflows/private-ios-build.yml
   .gitignore
   LICENSE
   Package.swift
@@ -12,6 +13,7 @@ allowed=(
   Sources/LabCore/DeterministicSample.swift
   Tests/LabCoreTests/DeterministicSampleTests.swift
   docs/SECURITY_BOUNDARY.md
+  docs/PRIVATE_IOS_BUILD.md
   scripts/verify-public-boundary.sh
 )
 # GitHub macOS images still have /bin/bash 3.2, which lacks mapfile.
@@ -32,4 +34,4 @@ if git grep -IqlE 'LinguaWA|com\.mmat(lacz|lacz)|sk-proj-|whatsapp-translator/|n
     echo 'PUBLIC-BOUNDARY-FAIL: private application identifiers found.' >&2
     exit 1
 fi
-echo 'PUBLIC-BOUNDARY-PASS: only synthetic files tracked.'
+echo 'PUBLIC-BOUNDARY-PASS: reviewed public harness only; no private application source tracked.'

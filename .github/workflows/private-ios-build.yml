@@ -1,0 +1,112 @@
+name: Build real private WhatsApp iOS app on GitHub Xcode 27
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Opaque 32-character request ID, no private SHA"
+        required: true
+        type: string
+
+run-name: Private iOS build ${{ inputs.request_id }}
+
+permissions:
+  contents: read
+
+jobs:
+  full-private-ios:
+    if: github.actor == 'MMatlacz' || github.actor == 'mmat-wa-public-dispatch[bot]'
+    runs-on: xcode-27
+    timeout-minutes: 70
+    steps:
+      - name: Validate opaque request
+        env:
+          REQUEST_ID: ${{ inputs.request_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$REQUEST_ID" =~ ^[a-f0-9]{32}$ ]] || exit 2
+
+      - name: Checkout public CI harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: lab
+          persist-credentials: false
+
+      - name: Verify public file boundary
+        working-directory: lab
+        run: bash scripts/verify-public-boundary.sh
+
+      - name: Require configured source App
+        env:
+          APP_ID: ${{ secrets.WHATSAPP_SOURCE_APP_ID }}
+          APP_KEY: ${{ secrets.WHATSAPP_SOURCE_APP_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "$APP_ID" && -n "$APP_KEY" ]] || {
+            echo "Private source App is not configured; no checkout performed."
+            exit 2
+          }
+
+      - name: Mint restricted private source token
+        id: private-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        with:
+          app-id: ${{ secrets.WHATSAPP_SOURCE_APP_ID }}
+          private-key: ${{ secrets.WHATSAPP_SOURCE_APP_KEY }}
+          owner: MMatlacz
+          repositories: Whatsapp
+          permission-contents: read
+
+      - name: Checkout actual private source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: MMatlacz/Whatsapp
+          ref: apple
+          token: ${{ steps.private-token.outputs.token }}
+          path: private-src
+          persist-credentials: false
+
+      - name: Compile actual private iOS app and diagnostic targets
+        env:
+          RUNNER_TEMP: ${{ runner.temp }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          cd private-src
+          test -f native-ios/WhatsAppTranslator.xcodeproj/project.pbxproj
+          test -f native-ios/ci/swiftpm-plugins.json
+          test -f native-ios/ci/swiftpm-macros.json
+          xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-path
+          npm --prefix native-ios/BridgeRuntime ci --ignore-scripts --no-audit --no-fund --no-progress
+          npm --prefix native-ios/BridgeRuntime run bundle
+          xcodebuild -downloadComponent MetalToolchain
+          security_dir="$HOME/Library/org.swift.swiftpm/security"
+          mkdir -p "$security_dir"
+          install -m 600 native-ios/ci/swiftpm-plugins.json "$security_dir/plugins.json"
+          install -m 600 native-ios/ci/swiftpm-macros.json "$security_dir/macros.json"
+          xcodebuild -quiet -project native-ios/WhatsAppTranslator.xcodeproj \
+            -scheme WhatsAppTranslator -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/whatsapp-derived-data" \
+            INDEX_STORE_PATH="$RUNNER_TEMP/whatsapp-index" CODE_SIGNING_ALLOWED=NO clean build
+          cd native-ios/QwenMLXDiagnosticAdapter
+          swift package resolve
+          swift test
+          swift build --product qwen-mlx-benchmark
+          swift run qwen-mlx-benchmark --help
+          xcodebuild -quiet -scheme QwenMLXDiagnosticAdapter -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/whatsapp-mlx-derived-data" \
+            CODE_SIGNING_ALLOWED=NO build
+          cd ../..
+          xcodebuild -quiet -project native-ios/QwenDeviceBenchmarkHarness.xcodeproj \
+            -scheme QwenDeviceBenchmarkHarness -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/qwen-device-benchmark-derived-data" \
+            INDEX_STORE_PATH="$RUNNER_TEMP/qwen-device-benchmark-index" \
+            CODE_SIGNING_ALLOWED=NO clean build
+          echo 'Full actual private application and diagnostic Simulator targets built.'
