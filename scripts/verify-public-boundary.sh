@@ -6,6 +6,7 @@ set -euo pipefail
 allowed=(
   .github/workflows/xcode27-public.yml
   .github/workflows/private-ios-build.yml
+  .github/workflows/private-pr-ios-build.yml
   .gitignore
   LICENSE
   Package.swift
@@ -15,6 +16,7 @@ allowed=(
   docs/SECURITY_BOUNDARY.md
   docs/PRIVATE_IOS_BUILD.md
   scripts/verify-public-boundary.sh
+  scripts/run-native-acceptance.sh
 )
 # GitHub macOS images still have /bin/bash 3.2, which lacks mapfile.
 # Process substitution and diff work in both Bash 3.2 and current Linux Bash.
