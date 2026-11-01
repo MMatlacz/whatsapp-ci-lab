@@ -60,19 +60,18 @@ jobs:
           permission-contents: read
 
       - name: Checkout actual private source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: MMatlacz/Whatsapp
-          ref: apple
-          token: ${{ steps.private-token.outputs.token }}
-          path: private-src
-          persist-credentials: false
+        shell: bash
+        env:
+          REQUEST_ID: ${{ inputs.request_id }}
+          SOURCE_TOKEN: ${{ steps.private-token.outputs.token }}
+        run: python3 lab/scripts/private_execution.py checkout-canonical
 
       - name: Compile actual private iOS app and diagnostic targets
         env:
           RUNNER_TEMP: ${{ runner.temp }}
         shell: bash
         run: |
+          python3 lab/scripts/private_execution.py run bash -euo pipefail <<'PRIVATE'
           set -euo pipefail
           set +x
           cd private-src
@@ -110,3 +109,20 @@ jobs:
             INDEX_STORE_PATH="$RUNNER_TEMP/qwen-device-benchmark-index" \
             CODE_SIGNING_ALLOWED=NO clean build
           echo 'Full actual private application and diagnostic Simulator targets built.'
+          PRIVATE
+
+      - name: Remove transient private checkout
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GITHUB_WORKSPACE"
+          test -n "$RUNNER_TEMP"
+          rm -rf -- "$GITHUB_WORKSPACE/private-src" \
+            "$RUNNER_TEMP/whatsapp-derived-data" "$RUNNER_TEMP/whatsapp-index" \
+            "$RUNNER_TEMP/whatsapp-mlx-derived-data" \
+            "$RUNNER_TEMP/qwen-device-benchmark-derived-data" \
+            "$RUNNER_TEMP/qwen-device-benchmark-index" \
+            "$RUNNER_TEMP"/native-acceptance-*.xcresult \
+            "$RUNNER_TEMP/native-acceptance-derived-data" \
+            "$RUNNER_TEMP/native-acceptance-summary.json" >/dev/null 2>&1
