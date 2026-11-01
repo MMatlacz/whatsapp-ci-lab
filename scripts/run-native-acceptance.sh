@@ -52,6 +52,10 @@ xcodebuild -quiet test \
   CODE_SIGNING_ALLOWED=NO
 status=$?
 set -e
+if [[ ! -d "${result}" ]]; then
+  echo 'NativeAcceptance result bundle missing; no pass claimed.' >&2
+  exit 1
+fi
 if [[ -d "${result}" ]]; then
   xcrun xcresulttool get test-results summary --path "${result}" > "${RUNNER_TEMP}/native-acceptance-summary.json"
   python3 - "${RUNNER_TEMP}/native-acceptance-summary.json" "${status}" <<'PY'

@@ -17,6 +17,7 @@ allowed=(
   docs/PRIVATE_IOS_BUILD.md
   scripts/verify-public-boundary.sh
   scripts/run-native-acceptance.sh
+  scripts/test_native_acceptance.py
 )
 # GitHub macOS images still have /bin/bash 3.2, which lacks mapfile.
 # Process substitution and diff work in both Bash 3.2 and current Linux Bash.
