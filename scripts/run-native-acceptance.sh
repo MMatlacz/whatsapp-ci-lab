@@ -52,14 +52,27 @@ xcodebuild -quiet test \
   CODE_SIGNING_ALLOWED=NO
 status=$?
 set -e
+if [[ ! -d "${result}" ]]; then
+  echo 'NativeAcceptance result bundle missing; no pass claimed.' >&2
+  exit 1
+fi
 if [[ -d "${result}" ]]; then
   xcrun xcresulttool get test-results summary --path "${result}" > "${RUNNER_TEMP}/native-acceptance-summary.json"
   python3 - "${RUNNER_TEMP}/native-acceptance-summary.json" "${status}" <<'PY'
 import json,sys
 summary=json.load(open(sys.argv[1]))
-count=int(summary.get("totalTestCount",summary.get("testsCount",0)) or 0)
-failed=int(summary.get("failedTests",summary.get("failedTestsCount",0)) or 0)
-skipped=int(summary.get("skippedTests",summary.get("skippedTestsCount",0)) or 0)
+def counter(*names):
+    values = [summary[name] for name in names if name in summary]
+    if (not values or any(type(value) is not int or value < 0 for value in values)
+            or len(set(values)) != 1):
+        raise SystemExit("Incomplete native acceptance evidence: invalid or missing " + names[0])
+    return values[0]
+
+if not isinstance(summary, dict):
+    raise SystemExit("Incomplete native acceptance evidence: expected summary object")
+count=counter("totalTestCount", "testsCount")
+failed=counter("failedTests", "failedTestsCount")
+skipped=counter("skippedTests", "skippedTestsCount")
 print(f"Native acceptance tests: total={count}, failed={failed}, skipped={skipped}")
 if int(sys.argv[2]) == 0 and (count < 19 or failed or skipped):
     raise SystemExit("Incomplete native acceptance evidence; require at least 19 passed, zero skipped")
