@@ -77,7 +77,9 @@ jobs:
       - name: Verify public contents
         run: bash scripts/verify-public-boundary.sh
       - name: Test acceptance evidence rejection offline
-        run: python3 scripts/test_native_acceptance.py -v
+        run: |
+          python3 scripts/test_native_acceptance.py -v
+          python3 scripts/test_private_execution.py -v
       - name: Run Swift package tests
         run: swift test --parallel
 

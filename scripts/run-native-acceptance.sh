@@ -48,6 +48,7 @@ xcodebuild -quiet test \
   -configuration NativeAcceptance \
   -destination "platform=iOS Simulator,id=${simulator_id}" \
   -resultBundlePath "${result}" \
+  -derivedDataPath "${RUNNER_TEMP}/native-acceptance-derived-data" \
   -parallel-testing-enabled NO \
   CODE_SIGNING_ALLOWED=NO
 status=$?

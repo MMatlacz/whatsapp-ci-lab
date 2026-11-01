@@ -17,8 +17,8 @@ repository and Contents: read, and revoked when the job ends.
 Initial canary builds canonical apple, not a specific PR commit, so it does not
 replace per-PR required build-apple or the separate required Secret checks.
 Inputs contain only an opaque request ID. The code is checked out transiently
-in the hosted runner but the public job logs may reveal private compiler
-diagnostics despite quiet output. Public Actions is not strictly private.
+in the hosted runner; private process output is suppressed by the wrapper below.
+Public Actions is not a private execution environment.
 No user session or model weight should be provided to this workflow.
 
 This PR does not grant access or activate the source-App secret. Complete an
@@ -53,20 +53,21 @@ original private PR head SHA unchanged, and original mandatory Secret checks.
 A stale or cancelled run is not a pass. Only the private-side reporter can
 post verified evidence to a private PR. No successful Xcode status is invented.
 
-Public Actions logs are readable by visitors and may reveal private compiler
-diagnostics or checkout SHAs even when inputs are opaque. Do not upload
+Public Actions logs are readable by visitors. The exact-PR workflow now suppresses
+private child diagnostics and checkout output as described below. Do not upload
 xcresult screenshots, app builds, source, models, signing identities, or chats.
 No physical device or production WhatsApp Web session is involved.
 Private build-apple and other existing CI checks are unchanged.
 
 ## Connected Apple-only execution migration (staged)
 
-The exact-ref workflow also accepts `test_suite=qwen-functional`. This option
-executes the reviewed private checkout's functional runner; no application source,
+The exact-ref workflow retains a staged `test_suite=qwen-functional` definition,
+but request validation deliberately rejects it before checkout. A future separately
+reviewed activation would execute the private functional runner; no application source,
 model, report or diagnostic log is committed/uploaded to this public repository.
 The runner must retain its pinned artifact checks and distinguish iOS Simulator
-results from native macOS fallback. The public job always removes its transient
-private checkout. A synthetic harness CI pass is not an inference result.
+results from native macOS fallback. The public job requests unconditional cleanup of its transient
+private checkout; forced host loss relies on ephemeral runner disposal. A synthetic harness CI pass is not an inference result.
 
 Private read-only evidence checks can independently verify the request tag, exact
 source head, security results, public workflow/script blob identities and actual
@@ -76,3 +77,28 @@ merged public main dependencies; a draft branch is not used by the dispatcher.
 GitHub's associated-project usage restrictions and runner/billing limits continue
 to apply. No larger runner, new credential grant, quota exception or model
 redistribution is introduced.
+
+## Private process output boundary
+
+The exact-PR and legacy canonical workflows run private checkout, compilation and
+optional suites through `scripts/private_execution.py`; exact-PR ref verification
+uses that same boundary. Child stdout and stderr
+are discarded, not uploaded or printed on failure. The wrapper emits only fixed
+success/failure messages and preserves nonzero exits. Private child processes do
+not receive runner summary/output file channels. Checkout credentials exist only
+in the fetch process environment, never command arguments or persisted Git config.
+Cancellation terminates the child process group; the workflow's `always()` cleanup
+removes the transient checkout and known build/result directories. A forcibly lost
+host cannot run cleanup; it relies on disposal of the ephemeral hosted runner.
+
+No public artifact, cache, source excerpt, private commit subject or checkout SHA
+is intentionally published. Tests inject synthetic diagnostic markers into both
+output streams, including failure paths. Compilation is still not native acceptance:
+only the native suite's fail-closed result guard establishes its >=19 tests.
+A change to this wrapper must update the private reviewed harness manifest before
+any new exact-head evidence can be accepted. Qwen remains disabled and is not run by these offline tests.
+
+`qwen-functional` is deliberately rejected during request validation, before token
+minting or checkout. This is a failed request, never a skipped/successful model run.
+Re-enabling it requires separate review of private runner cancellation, scope and
+new exact-head evidence. The current fix does not run or enable a model.
