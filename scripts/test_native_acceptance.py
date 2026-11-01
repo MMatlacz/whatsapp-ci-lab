@@ -70,6 +70,32 @@ class AcceptanceEvidenceTests(unittest.TestCase):
     def test_build_failure(self):
         self.assert_rejected(summary={'totalTestCount': 19, 'failedTests': 0, 'skippedTests': 0}, build_status=65)
 
+    def test_missing_counters(self):
+        valid = {'totalTestCount': 19, 'failedTests': 0, 'skippedTests': 0}
+        for key in valid:
+            with self.subTest(missing=key):
+                self.assert_rejected(summary={k: v for k, v in valid.items() if k != key})
+
+    def test_invalid_counter_types_and_negative_values(self):
+        valid = {'totalTestCount': 19, 'failedTests': 0, 'skippedTests': 0}
+        for key in valid:
+            for value in (-1, True, False, 19.0, '19', None, [], {}):
+                with self.subTest(key=key, value=value):
+                    self.assert_rejected(summary=dict(valid, **{key: value}))
+
+    def test_non_object_summary(self):
+        self.assert_rejected(summary=[])
+
+    def test_conflicting_alias(self):
+        self.assert_rejected(summary={'totalTestCount': 19, 'testsCount': 20,
+                                      'failedTests': 0, 'skippedTests': 0})
+
+    def test_valid_aliases(self):
+        result = self.run_case(summary={'testsCount': 19, 'failedTestsCount': 0,
+                                        'skippedTestsCount': 0})
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(SUCCESS, result.stdout)
+
     def test_complete_success(self):
         result = self.run_case(summary={'totalTestCount': 19, 'failedTests': 0, 'skippedTests': 0})
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

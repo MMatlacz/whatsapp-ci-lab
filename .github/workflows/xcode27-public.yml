@@ -76,6 +76,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Verify public contents
         run: bash scripts/verify-public-boundary.sh
+      - name: Test acceptance evidence rejection offline
+        run: python3 scripts/test_native_acceptance.py -v
       - name: Run Swift package tests
         run: swift test --parallel
 
