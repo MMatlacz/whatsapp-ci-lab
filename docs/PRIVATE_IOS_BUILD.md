@@ -58,3 +58,21 @@ diagnostics or checkout SHAs even when inputs are opaque. Do not upload
 xcresult screenshots, app builds, source, models, signing identities, or chats.
 No physical device or production WhatsApp Web session is involved.
 Private build-apple and other existing CI checks are unchanged.
+
+## Connected Apple-only execution migration (staged)
+
+The exact-ref workflow also accepts `test_suite=qwen-functional`. This option
+executes the reviewed private checkout's functional runner; no application source,
+model, report or diagnostic log is committed/uploaded to this public repository.
+The runner must retain its pinned artifact checks and distinguish iOS Simulator
+results from native macOS fallback. The public job always removes its transient
+private checkout. A synthetic harness CI pass is not an inference result.
+
+Private read-only evidence checks can independently verify the request tag, exact
+source head, security results, public workflow/script blob identities and actual
+suite step conclusions. They do not accept a comment or synthetic result as an
+Apple pass. Activation still requires separately reviewed private integration and
+merged public main dependencies; a draft branch is not used by the dispatcher.
+GitHub's associated-project usage restrictions and runner/billing limits continue
+to apply. No larger runner, new credential grant, quota exception or model
+redistribution is introduced.

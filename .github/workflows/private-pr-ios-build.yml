@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: none
-        options: [none, native-acceptance]
+        options: [none, native-acceptance, qwen-functional]
       request_id:
         description: "Opaque 32-character request ID, no private SHA"
         required: true
@@ -138,3 +138,20 @@ jobs:
           PRIVATE_ROOT: ${{ github.workspace }}/private-src
           REQUEST_ID: ${{ inputs.request_id }}
         run: bash lab/scripts/run-native-acceptance.sh
+
+      - name: Execute private Qwen functional suite
+        if: inputs.test_suite == 'qwen-functional'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd private-src
+          export PRIVATE_SOURCE_SHA="$(git rev-parse HEAD)"
+          python3 infra/public-ci-dispatch/qwen_runner.py
+
+      - name: Remove transient private checkout
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GITHUB_WORKSPACE"
+          rm -rf -- "$GITHUB_WORKSPACE/private-src"
